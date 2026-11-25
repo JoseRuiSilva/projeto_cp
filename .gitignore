@@ -1,0 +1,9 @@
+﻿md
+md_orig
+*.o
+*.out
+*.err
+*.data
+cp_traj.xyz
+cp_output.txt
+cp_average.txt
