@@ -1,6 +1,6 @@
 CC = g++
 SRC = src/
-CFLAGS = -O3 -march=native -ffast-math -fopenmp
+CXXFLAGS = -O3 -march=native -fopenmp
 
 .DEFAULT_GOAL = md
 

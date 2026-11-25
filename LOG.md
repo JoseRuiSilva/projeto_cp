@@ -23,7 +23,7 @@
 - **Alterações no `Makefile`:** Compilação com `g++ -O3 -march=native -ffast-math -fopenmp` e exportação de `OMP_NUM_THREADS`, `OMP_PROC_BIND=close`, `OMP_PLACES=cores`.
 
 ## [Experiência 2] Benchmark OpenMP com `schedule(guided)` (Deucalion A64FX)
-- **Validação (1T e 48T):** Passou (`T = 153.39884091`, `KE = 8096.63469410`, `PE = -51311.54755276`, `P = 157203191.80024040`, erro relativo $1.1 \times 10^{-13}$).
+- **Validação (1T e 48T):** Falhou critério dos 14 dígitos em P(t) devido a -ffast-math (`T = 153.39884091`, `KE = 8096.63469410`, `PE = -51311.54755276`, `P = 157203191.80024040`, erro relativo $1.1 \times 10^{-13}$).
 - **Escalabilidade forte (`schedule(guided)`, `OMP_PROC_BIND=close`, `OMP_PLACES=cores`):**
   - `1T`: `44.37 s` (7.3× vs orig.) | IPC `0.53` | Cache-misses `459.0 M`
   - `2T`: `33.10 s` (1.34× vs 1T, Ef. `67.0%`) | IPC `0.53` | Cache-misses `474.7 M`
@@ -38,7 +38,7 @@
 - **Próxima alteração:** Trocar `schedule(guided)` por `schedule(static, 1)` (distribuição cíclica balanceada sem *overhead* dinâmico).
 
 ## [Experiência 3 — Versão Final] Benchmark OpenMP com `schedule(static, 1)` (Deucalion A64FX)
-- **Validação (1T e 48T):** Passou (`T = 153.39884091`, `KE = 8096.63469410`, `PE = -51311.54755276`, `P = 157203191.80023986`, erro relativo $1.16 \times 10^{-13}$).
+- **Validação (1T e 48T):** Falhou critério dos 14 dígitos em P(t) devido a -ffast-math (`T = 153.39884091`, `KE = 8096.63469410`, `PE = -51311.54755276`, `P = 157203191.80023986`, erro relativo $1.16 \times 10^{-13}$).
 - **Escalabilidade forte (`schedule(static, 1)`, `OMP_PROC_BIND=close`, `OMP_PLACES=cores`):**
   - `1T`: `44.80 s` (7.3× vs orig.) | IPC `0.51` | Cache-misses `459.1 M`
   - `2T`: `22.48 s` (1.99× vs 1T, Ef. `99.6%`) | IPC `0.51` | Cache-misses `470.1 M`
@@ -50,3 +50,11 @@
   - `32T`: `1.47 s` (30.46× vs 1T, Ef. `95.2%`) | IPC `0.56` | Cache-misses `535.3 M`
   - `48T`: `1.03 s` (43.31× vs 1T, **314.4× vs orig.**, Ef. `90.2%`) | IPC `0.60` | Cache-misses `580.0 M`
 - **Ganho face a `schedule(guided)`:** Redução de `1.94 s` para `1.03 s` em 48 threads (eficiência subiu de `47.7%` para `90.2%`), confirmando o balanceamento de carga no ciclo triangular.
+
+## [Experiência 4] Teste de flags de vírgula flutuante e validação final (14 dígitos)
+- **Problema detetado:** Com `-ffast-math`, `P(t) = 157203191.80023986` falhava no 14.º dígito face à referência (`157203191.80025804`).
+- **Testes em 48 threads (`schedule(static, 1)`):**
+  - `-O3 -march=native -fopenmp`: `1.041 s` | `P(t) = 157203191.80025399` (**PASSA**, 14 dígitos exatos).
+  - `-O3 -march=native -fopenmp -ffast-math`: `1.031 s` | `P(t) = 157203191.80023986` (falha 14.º dígito).
+  - `-O3 -march=native -fopenmp -ffp-contract=off`: `1.148 s` | `P(t) = 157203191.80025628` (passa, mas ~10% mais lento).
+- **Decisão:** Remover `-ffast-math` do `Makefile` (`-O3 -march=native -fopenmp`), garantindo conformidade numérica total com perda negligenciável (~10 ms).
