@@ -1,4 +1,4 @@
-// Template IEEE Conference (A4, 2 colunas) — sem pacotes externos.
+// Template IEEE Conference (A4, 2 colunas) - sem pacotes externos.
 // Uso: #show: ieee.with(title: ..., authors: (...), abstract: [...], keywords: [...])
 
 // Small Caps simulado: maiúsculas mantêm-se, minúsculas passam a maiúsculas mais pequenas
@@ -140,12 +140,12 @@
     set par(first-line-indent: 0pt)
     set text(size: 9pt, weight: "bold")
     if abstract != none {
-      emph[Resumo—]
+      emph[Resumo-]
       abstract
       parbreak()
     }
     if keywords != none {
-      emph[Palavras-chave—]
+      emph[Palavras-chave-]
       keywords
       v(0.4em)
     }

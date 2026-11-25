@@ -1,4 +1,4 @@
-#import "template.typ": ieee
+#import "../template.typ": ieee
 
 #show: ieee.with(
   title: "Otimização e Paralelização OpenMP de uma Simulação de Dinâmica Molecular no Deucalion",
@@ -41,8 +41,8 @@
     align: center,
     stroke: 0.5pt,
     [*Threads*], [*Tempo (s)*], [*Speedup*],
-    [1], [—], [1,0],
-    [48], [—], [—],
+    [1], [-], [1,0],
+    [48], [-], [-],
   ),
   caption: [Tempos de execução e speedup],
 ) <tab:tempos>
@@ -55,4 +55,4 @@
 = Conclusão
 [Por preencher: speedup final e trabalho futuro.]
 
-#bibliography("referencias.bib", title: "Referências", style: "ieee")
+#bibliography("../referencias.bib", title: "Referências", style: "ieee")
