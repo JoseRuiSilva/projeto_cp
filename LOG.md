@@ -59,7 +59,7 @@
   - `-O3 -march=native -fopenmp -ffp-contract=off`: `1.148 s` | `P(t) = 157203191.80025628` (passa, mas ~10% mais lento).
 - **Decisão:** Remover `-ffast-math` do `Makefile` (`-O3 -march=native -fopenmp`), garantindo conformidade numérica total com perda negligenciável (~10 ms).
 
-## [Experiência 5 — Versão Final Validada] Benchmark OpenMP sem `-ffast-math` (`schedule(static, 1)`, Deucalion A64FX)
+## [Experiência 5] Benchmark OpenMP sem -ffast-math (schedule(static, 1), -march=native)
 - **Compilação:** `g++ -O3 -march=native -fopenmp src/MD.cpp -lm -o md` (`OMP_PROC_BIND=close`, `OMP_PLACES=cores`).
 - **Validação (critério 14 dígitos em `P(t)`):** **PASSOU**
   - `1T`: `P(t) = 157203191.80025634` (referência: `157203191.80025804` — 14 dígitos exatos).
@@ -89,13 +89,31 @@
   - Sem `#pragma omp simd`: `1.426 s` (`1.323 s` com flags seguras) — o tempo quase duplica, provando que a diretiva `omp simd reduction` é indispensável para o GCC vetorizar a redução em SVE sem recorrer a `-ffast-math`.
 - **Decisão:** Adotar `-O3 -mcpu=a64fx -msve-vector-bits=512 -fno-math-errno -fno-trapping-math -fopenmp` no `Makefile` e manter `#pragma omp simd`.
 
-  ## Notas para o Relatório
-- **Tabela e métricas finais a usar:** Usar **apenas a Experiência 5** (sem `-ffast-math`, versão validada): `1T = 44.08 s`, `48T = 1.03 s`, $S_{\text{par}} = 42.64\times$, $S_{\text{total}} = 314.65\times$, Eficiência = `88.8%`, `P(t) = 157203191.80025399` (14 dígitos exatos face à referência `157203191.80025804`).
+## [Experiência 8 — Versão Final Validada] Escalabilidade Forte com SVE 512-bit (`schedule(static, 1)`, Deucalion A64FX)
+- **Compilação:** `g++ -O3 -mcpu=a64fx -msve-vector-bits=512 -fno-math-errno -fno-trapping-math -fopenmp src/MD.cpp -lm -o md` (`OMP_PROC_BIND=close`, `OMP_PLACES=cores`).
+- **Validação (critério 14 dígitos em `P(t)`):** **PASSOU**
+  - `1T`: `P(t) = 157203191.80025393` (referência: `157203191.80025804` — 14 dígitos exatos).
+  - `48T`: `P(t) = 157203191.80025285` (14 dígitos exatos; `T`, `KE` e `PE` exatos; `Total En.` varia apenas no último dígito).
+- **Escalabilidade forte (1 a 48 threads):**
+  - `1T`: `25.55 s` (`12.73×` vs orig.) | IPC `0.31` | Inst. `15.71 G` | Cache-misses `458.4 M`
+  - `2T`: `12.87 s` (`1.99×` vs 1T, Ef. `99.3%`) | IPC `0.32` | Inst. `16.17 G` | Cache-misses `467.8 M`
+  - `4T`: `6.31 s` (`4.05×` vs 1T, Ef. `101.3%`) | IPC `0.33` | Inst. `16.48 G` | Cache-misses `466.7 M`
+  - `8T`: `3.19 s` (`8.01×` vs 1T, Ef. `100.1%`) | IPC `0.34` | Inst. `17.45 G` | Cache-misses `496.5 M`
+  - `12T`: `2.22 s` (`11.51×` vs 1T, Ef. `95.9%`) | IPC `0.39` | Inst. `20.79 G` | Cache-misses `497.6 M`
+  - `16T`: `1.72 s` (`14.89×` vs 1T, Ef. `93.1%`) | IPC `0.43` | Inst. `23.00 G` | Cache-misses `515.9 M`
+  - `24T`: `1.19 s` (`21.53×` vs 1T, Ef. `89.7%`) | IPC `0.49` | Inst. `27.10 G` | Cache-misses `534.1 M`
+  - `32T`: `0.92 s` (`27.65×` vs 1T, Ef. `86.4%`) | IPC `0.51` | Inst. `29.29 G` | Cache-misses `557.1 M`
+  - `48T`: `0.67 s` (`37.87×` vs 1T, **`481.96×` vs orig.**, Ef. `78.9%`) | IPC `0.60` | Inst. `37.40 G` | Cache-misses `604.8 M`
+- **Análise SVE vs NEON (`Exp. 5` → `Exp. 8`):** Em 1T, as instruções caíram `65.7%` (`45.74 G` → `15.71 G`) e o tempo caiu de `44.08 s` para `25.55 s` (`1.72×`). A redução da parte computacional paralela aumenta o peso relativo da fração sequencial e do *overhead* OpenMP (fração efetiva de Amdahl ~`0.57%` em 48T, eficiência `78.9%`), mas eleva o speedup total de `314.65×` para **`481.96×`**.
+
+## Notas para o Relatório
+- **Tabela e métricas finais a usar:** Usar **apenas a Experiência 8** (SVE 512-bit validado): `1T = 25.55 s`, `48T = 0.67 s`, $S_{\text{par}} = 37.87\times$, $S_{\text{total}} = 481.96\times$, Eficiência = `78.9%`, `P(t) = 157203191.80025285` (14 dígitos exatos face à referência `157203191.80025804`).
 - **Experiências intermédias a documentar:**
-  - **Escalonamento (`Experiência 2` vs `Experiência 5`):** `schedule(guided)` converge para ~50% de eficiência (`47.7%` em 48T, `1.94 s`) porque o `libgomp` atribui o maior bloco inicial ($\lceil N/P \rceil$) às iterações mais pesadas do ciclo triangular decrescente, seguindo o modelo teórico $S(P) = \frac{1}{1 - (1 - 1/P)^2}$ (`1.33×`, `2.29×` e `4.27×` para `2`, `4` e `8` threads, coincidente com os valores medidos `1.34×`, `2.29×` e `4.27×`). A troca para `schedule(static, 1)` resolve o desequilíbrio (`1.03 s`, `88.8%`).
-  - **Validação numérica (`Experiência 4`):** `-ffast-math` fazia falhar o 14.º dígito de `P(t)` (`...80023986`); a sua remoção recuperou os 14 dígitos (`...80025399`) com impacto negligenciável (~10 ms), enquanto `-ffp-contract=off` também passou (`...80025628`) mas penalizou o tempo em ~10% (`1.148 s`).
-- **Topologia do nó Deucalion A64FX (`normal-arm`):** 48 cores organizados em **4 nós NUMA / CMGs** de 12 cores (`0–11`, `12–23`, `24–35`, `36–47`), relevante para contextualizar `OMP_PROC_BIND=close` e a ligeira perda de eficiência acima de 12 threads (redução de buffers entre CMGs).
+  - **Escalonamento (`Exp. 2` vs `Exp. 5`):** `schedule(guided)` converge para ~50% de eficiência (`47.7%` em 48T, `1.94 s`) porque o `libgomp` atribui o maior bloco inicial ($\lceil N/P \rceil$) às iterações mais pesadas do ciclo triangular decrescente, seguindo $S(P) = \frac{1}{1 - (1 - 1/P)^2}$ (`1.33×`, `2.29×` e `4.27×` para `2`, `4` e `8` threads, coincidente com `1.34×`, `2.29×` e `4.27×`). A troca para `schedule(static, 1)` resolve o desequilíbrio (`1.03 s`, `88.8%`).
+  - **Validação numérica (`Exp. 4`):** `-ffast-math` fazia falhar o 14.º dígito de `P(t)` (`...80023986`); a sua remoção recuperou os 14 dígitos (`...80025399`) com impacto negligenciável (~10 ms), enquanto `-ffp-contract=off` passou (`...80025628`) mas penalizou o tempo em ~10% (`1.148 s`).
+  - **Vetorização SVE 512-bit (`Exp. 6` e `Exp. 7`):** Forçar `-mcpu=a64fx -msve-vector-bits=512` reduziu o tempo de `1.04 s` para `0.72 s` (`-30.8%`), e adicionar `-fno-math-errno -fno-trapping-math` baixou para `0.67 s` (`482×` vs orig.). Remover `#pragma omp simd` quase duplicou o tempo (`1.43 s`), provando que a diretiva é indispensável para vetorizar a redução sem `-ffast-math`.
+- **Topologia do nó Deucalion A64FX (`normal-arm`):** 48 cores organizados em **4 nós NUMA / CMGs** de 12 cores (`0–11`, `12–23`, `24–35`, `36–47`), relevante para contextualizar `OMP_PROC_BIND=close` e a perda de eficiência acima de 12 threads (redução de buffers entre CMGs).
 - **Lei de Amdahl e contadores de hardware:**
-  - De $S(48) = 42.64\times$ resulta uma fração sequencial efetiva de **~0.27%** (a queda de eficiência para `88.8%` inclui também *overhead* paralelo e comunicação entre CMGs, não apenas código sequencial puro).
-  - As instruções sobem de `45.74 G` (`1T`) para `61.42 G` (`48T`) e o IPC de `0.52` para `0.64` — apresentar como **hipótese** (espera ativa nas barreiras OpenMP e redução dos 48 buffers privados), não como ganho real de eficiência computacional.
+  - De $S(48) = 37.87\times$ resulta uma fração sequencial efetiva de **~0.57%** (subiu face aos `0.27%` da `Exp. 5` porque o SVE acelerou `1.72×` a parte paralela, aumentando o peso relativo do *overhead* OpenMP e da parte sequencial).
+  - As instruções sobem de `15.71 G` (`1T`) para `37.40 G` (`48T`) e o IPC de `0.31` para `0.60` — apresentar como **hipótese** (espera ativa nas barreiras OpenMP e redução dos 48 buffers privados), não como ganho real de eficiência computacional.
 - **Limitações experimentais a explicitar:** As alternativas de paralelização OpenMP (`atomic` e matriz completa de forças) e o ganho isolado de cada otimização sequencial não foram medidos em separado, devendo ser justificados analiticamente no texto.
