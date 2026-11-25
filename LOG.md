@@ -36,3 +36,17 @@
   - `48T`: `1.94 s` (22.89× vs 1T, **167.8× vs orig.**, Ef. `47.7%`) | IPC `0.71` | Cache-misses `581.5 M`
 - **Diagnóstico:** A eficiência converge para ~50% porque `schedule(guided)` no `libgomp` atribui o maior bloco inicial ($\lceil N/P \rceil$) às iterações iniciais (`i = 0..N/P`), que são as mais pesadas no ciclo triangular decrescente.
 - **Próxima alteração:** Trocar `schedule(guided)` por `schedule(static, 1)` (distribuição cíclica balanceada sem *overhead* dinâmico).
+
+## [Experiência 3 — Versão Final] Benchmark OpenMP com `schedule(static, 1)` (Deucalion A64FX)
+- **Validação (1T e 48T):** Passou (`T = 153.39884091`, `KE = 8096.63469410`, `PE = -51311.54755276`, `P = 157203191.80023986`, erro relativo $1.16 \times 10^{-13}$).
+- **Escalabilidade forte (`schedule(static, 1)`, `OMP_PROC_BIND=close`, `OMP_PLACES=cores`):**
+  - `1T`: `44.80 s` (7.3× vs orig.) | IPC `0.51` | Cache-misses `459.1 M`
+  - `2T`: `22.48 s` (1.99× vs 1T, Ef. `99.6%`) | IPC `0.51` | Cache-misses `470.1 M`
+  - `4T`: `11.26 s` (3.98× vs 1T, Ef. `99.5%`) | IPC `0.52` | Cache-misses `470.9 M`
+  - `8T`: `5.65 s` (7.93× vs 1T, Ef. `99.2%`) | IPC `0.53` | Cache-misses `496.7 M`
+  - `12T`: `3.82 s` (11.73× vs 1T, Ef. `97.8%`) | IPC `0.54` | Cache-misses `495.1 M`
+  - `16T`: `2.86 s` (15.66× vs 1T, Ef. `97.9%`) | IPC `0.54` | Cache-misses `507.2 M`
+  - `24T`: `1.93 s` (23.21× vs 1T, Ef. `96.7%`) | IPC `0.55` | Cache-misses `516.2 M`
+  - `32T`: `1.47 s` (30.46× vs 1T, Ef. `95.2%`) | IPC `0.56` | Cache-misses `535.3 M`
+  - `48T`: `1.03 s` (43.31× vs 1T, **314.4× vs orig.**, Ef. `90.2%`) | IPC `0.60` | Cache-misses `580.0 M`
+- **Ganho face a `schedule(guided)`:** Redução de `1.94 s` para `1.03 s` em 48 threads (eficiência subiu de `47.7%` para `90.2%`), confirmando o balanceamento de carga no ciclo triangular.
