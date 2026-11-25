@@ -5,7 +5,7 @@ CXXFLAGS = -O3 -march=native -fopenmp
 .DEFAULT_GOAL = md
 
 md: $(SRC)MD.cpp
-	$(CC) $(CFLAGS) $(SRC)MD.cpp -lm -o md
+	$(CC) $(CXXFLAGS) $(SRC)MD.cpp -lm -o md
 
 clean:
 	rm -f ./md
