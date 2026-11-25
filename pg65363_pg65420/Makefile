@@ -1,6 +1,6 @@
 CC = g++
 SRC = src/
-CXXFLAGS = -O3 -march=native -fopenmp
+CXXFLAGS = -O3 -mcpu=a64fx -msve-vector-bits=512 -fno-math-errno -fno-trapping-math -fopenmp
 
 .DEFAULT_GOAL = md
 
