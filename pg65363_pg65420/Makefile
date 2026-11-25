@@ -1,15 +1,18 @@
-CC = gcc
+CC = g++
 SRC = src/
-CFLAGS = -O3 -ffast-math
+CFLAGS = -O3 -march=native -ffast-math -fopenmp
 
 .DEFAULT_GOAL = md
 
-md:     $(SRC)/MD.cpp
-	$(CC) $(CFLAGS) $(SRC)MD.cpp -lm -o md    
+md: $(SRC)MD.cpp
+	$(CC) $(CFLAGS) $(SRC)MD.cpp -lm -o md
 
 clean:
-	rm ./md    
+	rm -f ./md
 
 export OMP_NUM_THREADS ?= 48
-run:
-	./md     < inputdata.txt
+export OMP_PROC_BIND ?= close
+export OMP_PLACES ?= cores
+
+run: md
+	./md < inputdata.txt
