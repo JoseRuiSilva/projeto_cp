@@ -21,3 +21,18 @@
   - Layout SoA alinhado a 64 bytes (`alignas(64)`) para vetorização SVE no A64FX.
   - Paralelização OpenMP com buffers privados por thread (`STRIDE` alinhado contra *false sharing*), `schedule(guided)` para balancear o ciclo triangular e redução paralela final (zero *data races*).
 - **Alterações no `Makefile`:** Compilação com `g++ -O3 -march=native -ffast-math -fopenmp` e exportação de `OMP_NUM_THREADS`, `OMP_PROC_BIND=close`, `OMP_PLACES=cores`.
+
+## [Experiência 2] Benchmark OpenMP com `schedule(guided)` (Deucalion A64FX)
+- **Validação (1T e 48T):** Passou (`T = 153.39884091`, `KE = 8096.63469410`, `PE = -51311.54755276`, `P = 157203191.80024040`, erro relativo $1.1 \times 10^{-13}$).
+- **Escalabilidade forte (`schedule(guided)`, `OMP_PROC_BIND=close`, `OMP_PLACES=cores`):**
+  - `1T`: `44.37 s` (7.3× vs orig.) | IPC `0.53` | Cache-misses `459.0 M`
+  - `2T`: `33.10 s` (1.34× vs 1T, Ef. `67.0%`) | IPC `0.53` | Cache-misses `474.7 M`
+  - `4T`: `19.34 s` (2.29× vs 1T, Ef. `57.3%`) | IPC `0.54` | Cache-misses `470.0 M`
+  - `8T`: `10.38 s` (4.27× vs 1T, Ef. `53.4%`) | IPC `0.56` | Cache-misses `493.3 M`
+  - `12T`: `7.10 s` (6.25× vs 1T, Ef. `52.1%`) | IPC `0.57` | Cache-misses `492.4 M`
+  - `16T`: `5.41 s` (8.21× vs 1T, Ef. `51.3%`) | IPC `0.59` | Cache-misses `508.9 M`
+  - `24T`: `3.68 s` (12.04× vs 1T, Ef. `50.2%`) | IPC `0.62` | Cache-misses `517.1 M`
+  - `32T`: `2.81 s` (15.80× vs 1T, Ef. `49.4%`) | IPC `0.65` | Cache-misses `534.8 M`
+  - `48T`: `1.94 s` (22.89× vs 1T, **167.8× vs orig.**, Ef. `47.7%`) | IPC `0.71` | Cache-misses `581.5 M`
+- **Diagnóstico:** A eficiência converge para ~50% porque `schedule(guided)` no `libgomp` atribui o maior bloco inicial ($\lceil N/P \rceil$) às iterações iniciais (`i = 0..N/P`), que são as mais pesadas no ciclo triangular decrescente.
+- **Próxima alteração:** Trocar `schedule(guided)` por `schedule(static, 1)` (distribuição cíclica balanceada sem *overhead* dinâmico).

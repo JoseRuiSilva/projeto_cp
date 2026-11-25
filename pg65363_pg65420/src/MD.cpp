@@ -334,7 +334,7 @@ void computeAccelerations() {
             laz[i] = 0.0;
         }
 
-        #pragma omp for schedule(guided)
+        #pragma omp for schedule(static, 1)
         for (int i = 0; i < N - 1; i++) {
             const double xi = rx[i];
             const double yi = ry[i];
