@@ -58,3 +58,19 @@
   - `-O3 -march=native -fopenmp -ffast-math`: `1.031 s` | `P(t) = 157203191.80023986` (falha 14.º dígito).
   - `-O3 -march=native -fopenmp -ffp-contract=off`: `1.148 s` | `P(t) = 157203191.80025628` (passa, mas ~10% mais lento).
 - **Decisão:** Remover `-ffast-math` do `Makefile` (`-O3 -march=native -fopenmp`), garantindo conformidade numérica total com perda negligenciável (~10 ms).
+
+## [Experiência 5 — Versão Final Validada] Benchmark OpenMP sem `-ffast-math` (`schedule(static, 1)`, Deucalion A64FX)
+- **Compilação:** `g++ -O3 -march=native -fopenmp src/MD.cpp -lm -o md` (`OMP_PROC_BIND=close`, `OMP_PLACES=cores`).
+- **Validação (critério 14 dígitos em `P(t)`):** **PASSOU**
+  - `1T`: `P(t) = 157203191.80025634` (referência: `157203191.80025804` — 14 dígitos exatos).
+  - `48T`: `P(t) = 157203191.80025399` (14 dígitos exatos; `T`, `KE` e `PE` exatos; `Total En.` varia apenas no último dígito).
+- **Escalabilidade forte (1 a 48 threads):**
+  - `1T`: `44.08 s` (`7.38×` vs orig.) | IPC `0.52` | Inst. `45.74 G` | Cache-misses `458.4 M`
+  - `2T`: `21.99 s` (`2.00×` vs 1T, Ef. `100.2%`) | IPC `0.53` | Inst. `46.18 G` | Cache-misses `469.4 M`
+  - `4T`: `11.03 s` (`3.99×` vs 1T, Ef. `99.9%`) | IPC `0.54` | Inst. `47.01 G` | Cache-misses `470.7 M`
+  - `8T`: `5.54 s` (`7.95×` vs 1T, Ef. `99.4%`) | IPC `0.55` | Inst. `48.69 G` | Cache-misses `497.5 M`
+  - `12T`: `3.75 s` (`11.77×` vs 1T, Ef. `98.1%`) | IPC `0.57` | Inst. `50.32 G` | Cache-misses `498.3 M`
+  - `16T`: `2.82 s` (`15.63×` vs 1T, Ef. `97.7%`) | IPC `0.57` | Inst. `51.01 G` | Cache-misses `516.3 M`
+  - `24T`: `1.91 s` (`23.04×` vs 1T, Ef. `96.0%`) | IPC `0.58` | Inst. `52.70 G` | Cache-misses `534.5 M`
+  - `32T`: `1.46 s` (`30.19×` vs 1T, Ef. `94.4%`) | IPC `0.59` | Inst. `54.37 G` | Cache-misses `557.0 M`
+  - `48T`: `1.03 s` (`42.64×` vs 1T, **`314.65×` vs orig.**, Ef. `88.8%`) | IPC `0.64` | Inst. `61.42 G` | Cache-misses `610.1 M`
